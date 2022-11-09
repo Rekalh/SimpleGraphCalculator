@@ -30,6 +30,7 @@ class Line(Frame):
 class Point(Frame):
     #Coordinates
     x, y = 0, 0
+    
     #Radius
     radius = 0
     canvas = None
