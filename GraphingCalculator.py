@@ -1,7 +1,8 @@
 from tkinter import Tk
 from tkinter import Canvas
 from tkinter import Checkbutton
-from tkinter import IntVar
+from tkinter import BooleanVar
+from tkinter import Event
 
 from Utils import *
 
@@ -16,34 +17,17 @@ class GraphingCalculator:
 
     draw_points = False
 
-    rgb_color = [255, 38, 0]
+    rgb_color = [255, 0, 0]
 
-    def __init__(self, window: Tk, window_width, window_height):
-        canvas = Canvas()
-    
-        self.draw_ui(window)
+    window: Tk = None
+    canvas: Canvas = None
 
-        n_x_ticks = window_width // self.d_tick
-        n_y_ticks = window_height // self.d_tick
+    window_height, window_width = 0, 0
 
-        tick_y = (n_y_ticks // 2) * self.d_tick
+    def __init__(self, window: Tk, window_width: int, window_height: int):
+        self.window, self.window_width, self.window_height = window, window_width, window_height
 
-        # X ticks and X grid
-        for i in range(n_x_ticks):
-            Line(canvas, i * self.d_tick, 0, i * self.d_tick, window_height, 210, 210, 210) # X grid
-            Line(canvas, i * self.d_tick, tick_y - 5, i * self.d_tick, tick_y + 5, 155, 155, 155) # X ticks
-
-        # Y ticks and Y grid
-        for i in range(n_y_ticks):
-            Line(canvas, 0, i * self.d_tick, window_width, i * self.d_tick, 210, 210, 210)
-            Line(canvas, window_width / 2 - 5, i * self.d_tick, window_width / 2 + 5, i * self.d_tick, 155, 155, 155)
-
-        origin = self.axis_to_screen(0, 0, window_width, window_height)
-
-        # X axis
-        Line(canvas, 0, tick_y, window_width, tick_y, 155, 155, 155)
-        # Y axis
-        Line(canvas, origin[0], 0, origin[0], window_height, 155, 155, 155)
+        self.canvas = Canvas()
 
         # Calculate function outputs
         dx = window_width / self.n_points
@@ -57,26 +41,60 @@ class GraphingCalculator:
                 self.x_points.remove(a_x)
                 continue
 
+        self.draw()
+        self.draw_ui()
+
+        self.window.bind("<Key>", self.on_key_pressed)
+
+        self.window.mainloop()
+
+    def on_key_pressed(self, e: Event):
+        print(f'Pressed key: {e.char}')
+
+    def on_draw_points(self):
+        self.draw_points = not self.draw_points
+        self.draw()
+
+    def draw(self):
+        n_x_ticks = self.window_width // self.d_tick
+        n_y_ticks = self.window_height // self.d_tick
+
+        tick_y = (n_y_ticks // 2) * self.d_tick
+
+        # X ticks and X grid
+        for i in range(n_x_ticks):
+            Line(self.canvas, i * self.d_tick, 0, i * self.d_tick, self.window_height, 210, 210, 210) # X grid
+            Line(self.canvas, i * self.d_tick, tick_y - 5, i * self.d_tick, tick_y + 5, 155, 155, 155) # X ticks
+
+        # Y ticks and Y grid
+        for i in range(n_y_ticks):
+            Line(self.canvas, 0, i * self.d_tick, self.window_width, i * self.d_tick, 210, 210, 210)
+            Line(self.canvas, self.window_width / 2 - 5, i * self.d_tick, self.window_width / 2 + 5, i * self.d_tick, 155, 155, 155)
+
+        origin = self.axis_to_screen(0, 0, self.window_width, self.window_height)
+
+        # X axis
+        Line(self.canvas, 0, tick_y, self.window_width, tick_y, 155, 155, 155)
+        # Y axis
+        Line(self.canvas, origin[0], 0, origin[0], self.window_height, 155, 155, 155)
+
         # Draw points
         if self.draw_points:
             for i in range(len(self.x_points) - 1):
-                r_coords = self.axis_to_screen(self.x_points[i], self.y_points[i], window_width, window_height)
-                Point(canvas, r_coords[0], r_coords[1], radius=1, r=self.rgb_color[0], g=self.rgb_color[1], b=self.rgb_color[2])
+                r_coords = self.axis_to_screen(self.x_points[i], self.y_points[i], self.window_width, self.window_height)
+                Point(self.canvas, r_coords[0], r_coords[1], radius=1, r=self.rgb_color[0], g=self.rgb_color[1], b=self.rgb_color[2])
 
         # Connect the points
         for i in range(len(self.x_points) - 1):
             if i == len(self.x_points) - 1: break
-            this = self.axis_to_screen(self.x_points[i], self.y_points[i], window_width, window_height)
-            next = self.axis_to_screen(self.x_points[i + 1], self.y_points[i + 1], window_width, window_height)
+            this = self.axis_to_screen(self.x_points[i], self.y_points[i], self.window_width, self.window_height)
+            next = self.axis_to_screen(self.x_points[i + 1], self.y_points[i + 1], self.window_width, self.window_height)
 
-            Line(canvas, this[0], this[1], next[0], next[1], r=self.rgb_color[0], g=self.rgb_color[1], b=self.rgb_color[2])
+            Line(self.canvas, this[0], this[1], next[0], next[1], r=self.rgb_color[0], g=self.rgb_color[1], b=self.rgb_color[2])
 
-        window.mainloop()
-
-    def draw_ui(self, window):
-        draw_points = IntVar()
-        Checkbutton(window, text="Draw points", variable=draw_points, onvalue=True, offvalue=False).pack()
-        self.draw_points = draw_points.get()
+    def draw_ui(self):
+        draw_points = BooleanVar()
+        Checkbutton(self.window, text="Draw points", variable=draw_points, command=self.on_draw_points).pack()
 
     # Function to plot
     def fn(self, x):
